@@ -19,22 +19,22 @@ class EnzimaticModel(lmf.Model):
         rate
 
     """
-    def __init__(self, independent_vars=['x'], prefix='', nan_policy='none',
+    def __init__(self, independent_vars=['x'], prefix='', nan_policy='omit',
                  **kwargs):
         kwargs.update({'prefix': prefix, 'nan_policy': nan_policy,
                        'independent_vars': independent_vars})
 
-        R = 8.3144598 #[mol^-1  K^-1]
-        RR = 1/R
-        T298 = 1/298
+        r = 8.3144598 #[mol^-1  k^-1]
+        rr = 1/r
+        t298 = 1/298
         def enzimatic(x, rho, dHA, dHL, dHH, T12L, T12H):
-            act = rho * (x*T298) * np.exp( (dHA*RR) * (T298 - 1/x) )
-            high = np.exp( (dHH*RR) * (1/T12H - 1/x) ) if not np.any(np.isnan([dHH,T12H])) else 0
-            low  = np.exp( (dHL*RR) * (1/T12L - 1/x) ) if not np.any(np.isnan([dHL,T12L])) else 0
+            act = rho * (x*t298) * np.exp( (dHA*rr) * (t298 - 1/x) )
+            high = np.exp( (dHH*rr) * (1/T12H - 1/x) ) if not np.any(np.isnan([dHH,T12H])) else 0
+            low  = np.exp( (dHL*rr) * (1/T12L - 1/x) ) if not np.any(np.isnan([dHL,T12L])) else 0
 
             return act/(1+low+high)
 
-        super(self.__class__.__name__, self).__init__(enzimatic, **kwargs)
+        super(self.__class__, self).__init__(enzimatic, **kwargs)
         
         self.set_param_hint('rho', min=0, value=1)
         self.set_param_hint('T12L', min=273, max=300, value=285)
@@ -43,36 +43,75 @@ class EnzimaticModel(lmf.Model):
         self.set_param_hint('dHH', min=0, value=76000)
         self.set_param_hint('dHL', min=0, value=18000)
         self.set_param_hint('ineq1', min=0, expr='dHH - dHA')
-        self.set_param_hint('ineq1', max=0, expr='dHL - dHA')
+        self.set_param_hint('ineq2', max=0, expr='dHL - dHA')
 
     def guess(self, data, **kws):
         params = self.make_params()
         return params
 
-class EnzimaticLowCutModel(EnzimaticModel):
-    def __init__(self, independent_vars=['x'], prefix='', nan_policy='none',
+class EnzimaticLowCutModel(lmf.Model):
+    def __init__(self, independent_vars=['x'], prefix='', nan_policy='omit',
                  **kwargs):
         kwargs.update({'prefix': prefix, 'nan_policy': nan_policy,
                        'independent_vars': independent_vars})
 
-        super(self.__class__.__name__, self).__init__(**kwargs)
+        r = 8.3144598 #[mol^-1  k^-1]
+        rr = 1/r
+        t298 = 1/298
+        def enzimatic(x, rho, dHA, dHL, dHH, T12L, T12H):
+            act = rho * (x*t298) * np.exp( (dHA*rr) * (t298 - 1/x) )
+            high = np.exp( (dHH*rr) * (1/T12H - 1/x) ) if not np.any(np.isnan([dHH,T12H])) else 0
+            low  = np.exp( (dHL*rr) * (1/T12L - 1/x) ) if not np.any(np.isnan([dHL,T12L])) else 0
 
-        self.set_param_hint('T12L', value=np.nan,vary=False)
-        self.set_param_hint('dHL',  value=np.nan,vary=False)
+            return act/(1+low+high)
 
-class EnzimaticHighCutModel(EnzimaticModel):
-    def __init__(self, independent_vars=['x'], prefix='', nan_policy='none',
-                 **kwargs):
-        kwargs.update({'prefix': prefix, 'nan_policy': nan_policy,
-                       'independent_vars': independent_vars})
-
-        super(self.__class__.__name__, self).__init__(**kwargs)
+        super(self.__class__, self).__init__(enzimatic, **kwargs)
         
+        self.set_param_hint('rho', min=0, value=1)
+        self.set_param_hint('T12L', min=273, max=300, value=285)
+        self.set_param_hint('dHA', min=0, value=11000)
+        self.set_param_hint('dHL', min=0, value=18000)
+        self.set_param_hint('ineq2', max=0, expr='dHL - dHA')
+
         self.set_param_hint('T12H', value=np.nan,vary=False)
         self.set_param_hint('dHH',  value=np.nan,vary=False)
 
+    def guess(self, data, **kws):
+        params = self.make_params()
+        return params
+class EnzimaticHighCutModel(lmf.Model):
+    def __init__(self, independent_vars=['x'], prefix='', nan_policy='omit',
+                 **kwargs):
+        kwargs.update({'prefix': prefix, 'nan_policy': nan_policy,
+                       'independent_vars': independent_vars})
+
+        r = 8.3144598 #[mol^-1  k^-1]
+        rr = 1/r
+        t298 = 1/298
+        def enzimatic(x, rho, dHA, dHL, dHH, T12L, T12H):
+            act = rho * (x*t298) * np.exp( (dHA*rr) * (t298 - 1/x) )
+            high = np.exp( (dHH*rr) * (1/T12H - 1/x) ) if not np.any(np.isnan([dHH,T12H])) else 0
+            low  = np.exp( (dHL*rr) * (1/T12L - 1/x) ) if not np.any(np.isnan([dHL,T12L])) else 0
+
+            return act/(1+low+high)
+
+        super(self.__class__, self).__init__(enzimatic, **kwargs)
+        
+
+        self.set_param_hint('rho', min=0, value=1)
+        self.set_param_hint('T12H', min=290, max=323, value=307)
+        self.set_param_hint('dHA', min=0, value=11000)
+        self.set_param_hint('dHL', min=0, value=18000)
+        self.set_param_hint('ineq1', min=0, expr='dHH - dHA')
+        
+        self.set_param_hint('T12L', value=np.nan,vary=False)
+        self.set_param_hint('dHL',  value=np.nan,vary=False)
+
+    def guess(self, data, **kws):
+        params = self.make_params()
+        return params
 class EnzimaticActivationModel(EnzimaticModel):
-    def __init__(self, independent_vars=['x'], prefix='', nan_policy='none',
+    def __init__(self, independent_vars=['x'], prefix='', nan_policy='omit',
                  **kwargs):
         kwargs.update({'prefix': prefix, 'nan_policy': nan_policy,
                        'independent_vars': independent_vars})
@@ -97,7 +136,7 @@ class EnzimaticParentModel(lmf.Model):
     output:
         rate
     """
-    def __init__(self, independent_vars=['x'], prefix='', nan_policy='none',
+    def __init__(self, independent_vars=['x'], prefix='', nan_policy='omit',
                  **kwargs):
         kwargs.update({'prefix': prefix, 'nan_policy': nan_policy,
                        'independent_vars': independent_vars})
@@ -130,7 +169,7 @@ class BetaModel(lmf.Model):
     output:
         rate
     """
-    def __init__(self, independent_vars=['x'], prefix='', nan_policy='none',
+    def __init__(self, independent_vars=['x'], prefix='', nan_policy='omit',
                  **kwargs):
         kwargs.update({'prefix': prefix, 'nan_policy': nan_policy,
                        'independent_vars': independent_vars})
@@ -152,44 +191,44 @@ class BetaModel(lmf.Model):
         params = self.make_params()
         return params
 
-import scipy.stats.distributions.poisson.pmf as poisson_pdf
-class PoissonModel(lmf.Model):
-    """
-    Poisson distribution model
-    P(k|lambda) = lambda^k * exp(-lambda) / k!
-    model = amplitude*P(lambda)
-    input:
-        lambda      : rate
-        amplitude   : amplitude
-    """
-    def __init__(self, independent_vars=['x'], prefix='', nan_policy='none',
-                 **kwargs):
-        kwargs.update({'prefix': prefix, 'nan_policy': nan_policy,
-                       'independent_vars': independent_vars})
-
-        def poisson(x, amplitude=1, mu=1):
-            if np.any( x < 0 ):
-                raise ModelError("Data must be non negative")
-            k = floor(x)
-#            return amplitude*np.exp(k*np.log(mu) - mu - np.log(factorial(k)) )
-            
-            return amplitude * poisson_pdf(k,mu) 
-            
-
-        super(self.__class__.__name__, self).__init__(poisson, **kwargs)
-
-        self.set_param_hint('amplitude', min=0, value=1)
-        self.set_param_hint('mu', min=0)
-
-    def guess(self, data, **kwargs):
-        params = self.make_params()
-
-        params[self.prefix+"amplitude"] = np.max(data)
-
-        x = self.independent_vars[0]
-        if x in kwargs:
-            params[self.prefix+"mu"] = np.mean(x)
-        else:
-            params[self.prefix+"mu"] = .5*len(data)
-
-        return params
+#import scipy.stats.distributions.poisson.pmf as poisson_pdf
+#class PoissonModel(lmf.Model):
+#    """
+#    Poisson distribution model
+#    P(k|lambda) = lambda^k * exp(-lambda) / k!
+#    model = amplitude*P(lambda)
+#    input:
+#        lambda      : rate
+#        amplitude   : amplitude
+#    """
+#    def __init__(self, independent_vars=['x'], prefix='', nan_policy='omit',
+#                 **kwargs):
+#        kwargs.update({'prefix': prefix, 'nan_policy': nan_policy,
+#                       'independent_vars': independent_vars})
+#
+#        def poisson(x, amplitude=1, mu=1):
+#            if np.any( x < 0 ):
+#                raise ModelError("Data must be non negative")
+#            k = floor(x)
+##            return amplitude*np.exp(k*np.log(mu) - mu - np.log(factorial(k)) )
+#            
+#            return amplitude * poisson_pdf(k,mu) 
+#            
+#
+#        super(self.__class__.__name__, self).__init__(poisson, **kwargs)
+#
+#        self.set_param_hint('amplitude', min=0, value=1)
+#        self.set_param_hint('mu', min=0)
+#
+#    def guess(self, data, **kwargs):
+#        params = self.make_params()
+#
+#        params[self.prefix+"amplitude"] = np.max(data)
+#
+#        x = self.independent_vars[0]
+#        if x in kwargs:
+#            params[self.prefix+"mu"] = np.mean(x)
+#        else:
+#            params[self.prefix+"mu"] = .5*len(data)
+#
+#        return params
