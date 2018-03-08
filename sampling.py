@@ -49,7 +49,7 @@ def stratifiedKFold(df, k, weights=None):
                 for i, data in enumerate(sample.itertuples()):
                     ddf = pd.DataFrame(dict(data._asdict()),index=[data.Index])
                     folds[i] = pd.concat([folds[i],ddf])
-                    list_data[id].drop(data.Index, inplace=True) 
+                    list_data[id] = list_data[id].drop(data.Index) 
                     count[id] += 1
 
     asd = np.concatenate(folds)

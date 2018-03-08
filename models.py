@@ -110,18 +110,33 @@ class EnzimaticHighCutModel(lmf.Model):
     def guess(self, data, **kws):
         params = self.make_params()
         return params
-class EnzimaticActivationModel(EnzimaticModel):
+
+class EnzimaticActivationModel(lmf.Model):
     def __init__(self, independent_vars=['x'], prefix='', nan_policy='omit',
                  **kwargs):
         kwargs.update({'prefix': prefix, 'nan_policy': nan_policy,
                        'independent_vars': independent_vars})
 
-        super(self.__class__.__name__, self).__init__(**kwargs)
+        r = 8.3144598 #[mol^-1  k^-1]
+        rr = 1/r
+        t298 = 1/298
+        def enzimatic(x, rho, dHA, dHL, dHH, T12L, T12H):
+            act = rho * (x*t298) * np.exp( (dHA*rr) * (t298 - 1/x) )
+            high = np.exp( (dHH*rr) * (1/T12H - 1/x) ) if not np.any(np.isnan([dHH,T12H])) else 0
+            low  = np.exp( (dHL*rr) * (1/T12L - 1/x) ) if not np.any(np.isnan([dHL,T12L])) else 0
+
+            return act/(1+low+high)
+
+        super(self.__class__, self).__init__(enzimatic, **kwargs)
         
         self.set_param_hint('T12L', value=np.nan,vary=False)
         self.set_param_hint('T12H', value=np.nan,vary=False)
         self.set_param_hint('dHH',  value=np.nan,vary=False)
         self.set_param_hint('dHL',  value=np.nan,vary=False)
+
+    def guess(self, data, **kws):
+        params = self.make_params()
+        return params
 
 class EnzimaticParentModel(lmf.Model):
     """
