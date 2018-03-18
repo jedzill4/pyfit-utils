@@ -19,10 +19,11 @@ def to_arrhenius(axis):
     axis.spines["top"].set_visible(True)
     
     twinax = axis.twiny()
-    twinax.set_xlabel('Mean Temperature [C$^o$]')
+    twinax.set_xlabel('Temperature [C$^o$]')
     twinax.spines["bottom"].set_visible(False)
     twinax.spines["left"].set_visible(False)
     twinax.spines["right"].set_visible(False)
     twinax.set_xlim(lims)
     twinax.set_xticklabels(['%.1f'%i for i in (1/ticks[::]-273.15)])
 
+    return twinax
